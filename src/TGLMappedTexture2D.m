@@ -1,12 +1,5 @@
 // Copyright (c) 2014 Yohsuke Yukishita
 // This software is released under the MIT License: http://opensource.org/licenses/mit-license.php
- //
-//  GLMappedTexture2D.m
-//  EyeJang
-//
-//  Created by Yukishita Yohsuke on 2013/12/11.
-//  Copyright (c) 2013年 monadworks. All rights reserved.
-//
 
 #import "NSObject+SimpleArchiver.h"
 #import "TGLMappedTexture2D.h"
