@@ -14,7 +14,6 @@
 @interface TGLProgram : NSObject 
 {
     NSMutableArray  *attributes;
-    NSMutableArray  *uniforms;
     GLuint          program,
 	vertShader, 
 	fragShader;	

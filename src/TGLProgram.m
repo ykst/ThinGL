@@ -41,7 +41,7 @@ typedef void (*GLLogFunction) (GLuint program,
         _initialized = NO;
         
         attributes = [[NSMutableArray alloc] init];
-        uniforms = [[NSMutableArray alloc] init];
+
         program = glCreateProgram();
         
         if (![self compileShader:&vertShader 
