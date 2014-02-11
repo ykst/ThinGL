@@ -66,20 +66,25 @@
     
     TGLRenderBufferObject *rbo = [TGLRenderBufferObject createWithEAGLContext:context withLayer:layer];
 
-    [obj bind];
+    [obj attachRenderbuffer:rbo];
+
+    return obj;
+}
+
+- (void)attachRenderbuffer:(TGLRenderBufferObject *)rbo
+{
+    [self bind];
 
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rbo.name);GLASSERT;
 
     NSASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 
-    [[obj class] unbind];
+    [[self class] unbind];
 
-    [obj.backings addObject:rbo];
-    obj.lying_rbo = rbo;
+    [self.backings addObject:rbo];
+    self.lying_rbo = rbo;
 
-    obj.size = rbo.size;
-
-    return obj;
+    self.size = rbo.size;
 }
 
 + (TGLFrameBufferObject *)createOnTexture2DWithSize:(CGSize)size withInternalFormat:(GLenum)internal_format withSmooth:(BOOL)smooth

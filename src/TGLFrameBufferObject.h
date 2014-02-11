@@ -28,5 +28,6 @@
 - (void)attachDepthBufferOnRenderbuffer16;
 - (void)attachDepthBufferOnRenderbuffer24;
 
+- (void)attachRenderbuffer:(TGLRenderBufferObject *)rbo;
 @end
 
