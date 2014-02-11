@@ -333,10 +333,6 @@ static BOOL __get_byte_format(GLenum *in_out_internal_format,
             CFRelease(_texture_ref);
         }
 
-        if (_texture_cache) {
-            CVOpenGLESTextureCacheFlush(_texture_cache, 0);
-        }
-
         if (_pixel_buffer) {
             CVPixelBufferUnlockBaseAddress(_pixel_buffer, 0);
             CVPixelBufferRelease(_pixel_buffer);
