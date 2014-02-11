@@ -8,8 +8,8 @@
 #import "TGLVertexBufferObject.h"
 #import "TGLFrameBufferObject.h"
 
-#define SHADER_WRAPPER_ATTRIBUTE_PREFIX @"attribute_"
-#define SHADER_WRAPPER_UNIFORM_PREFIX @"uniform_"
+#define SHADER_WRAPPER_ATTRIBUTE_PREFIX @"_attribute_"
+#define SHADER_WRAPPER_UNIFORM_PREFIX @"_uniform_"
 
 #define SHADER_VBO_FILL_TRIANGLE_STRIP (GLfloat []) {-1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f}
 #define SHADER_VBO_FILL_TEXTURE_TRIANGLE_STRIP (GLfloat []){ 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f}

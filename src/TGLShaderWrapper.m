@@ -20,41 +20,64 @@ static NSDictionary *__set_variable_dic(NSArray *array, GLint *p_idxs)
 
 - (void)_feedbackVariables:(NSArray *)array withPrefix:(NSString *)prefix withIdxs:(GLint *)p_idxs
 {
-    __block int select_idx = 0;
+    Class current_class = [self class];
 
-    for (NSString *attr in array) {
-        [self setValue:[NSNumber numberWithInt:p_idxs[select_idx++]] forKey:NSPRINTF(@"%@%@", prefix, attr)];
+    // set ascendent ivars because class-category may overwrite the ivar positions
+    while (current_class != [TGLShaderWrapper class]) {
+        int select_idx = 0;
+
+        for (NSString *attr in array) {
+            Ivar var = class_getInstanceVariable(current_class, [NSPRINTF(@"%@%@", prefix, attr) UTF8String]);
+            if (var != NULL) {
+                *((GLint *)((__bridge void *)self + ivar_getOffset(var))) = p_idxs[select_idx++];
+            }
+        }
+        current_class = [current_class superclass];
     }
 }
 
 - (void)setupShaderWithVS:(NSString *)vs withFS:(NSString *)fs
 {
     unsigned int count;
-    objc_property_t *properties = class_copyPropertyList([self class], &count);
-
-    if (count == 0) return;
+    //objc_property_t *properties = class_copyPropertyList([self class], &count);
+    Class current_class = [self class];
 
     NSMutableArray *attributes = [NSMutableArray array];
     NSMutableArray *uniforms = [NSMutableArray array];
 
-    for (int i = 0; i < count; ++i) {
-        objc_property_t property = properties[i];
-        NSString *name = [NSString stringWithUTF8String:property_getName(property)];
+    // recurse the listing of ivars to iterate all superclasses
+    while (current_class != [TGLShaderWrapper class]) {
+        Ivar *vars = class_copyIvarList(current_class, &count);
 
-        if ([name hasPrefix:SHADER_WRAPPER_ATTRIBUTE_PREFIX]) {
-            [attributes addObject:[name substringFromIndex:10]];
-        } else if ([name hasPrefix:SHADER_WRAPPER_UNIFORM_PREFIX]){
-            [uniforms addObject:[name substringFromIndex:8]];
-        }
-/* TODO: reflection of uniform variable is in need
-        NSString *type_attr = [NSSTR(property_getAttributes(property)) componentsSeparatedByString:@","][0];
+        for (int i = 0; i < count; ++i) {
+            Ivar var = vars[i];
+            NSString *name = [NSString stringWithUTF8String:ivar_getName(var)];
 
-        if ([type_attr hasPrefix:@"T@"] && type_attr.length > 1) {
-            NSString *type_name = [type_attr substringWithRange:NSMakeRange(3, [type_attr length]-4)];
-            DUMPS(type_name);
-            Class type_class = NSClassFromString(type_name);
+            if ([name hasPrefix:SHADER_WRAPPER_ATTRIBUTE_PREFIX]) {
+                NSString *key = [name substringFromIndex:SHADER_WRAPPER_ATTRIBUTE_PREFIX.length];
+                if ([attributes indexOfObject:key] == NSNotFound) {
+                    [attributes addObject:key];
+                }
+            } else if ([name hasPrefix:SHADER_WRAPPER_UNIFORM_PREFIX]){
+                NSString *key = [name substringFromIndex:SHADER_WRAPPER_UNIFORM_PREFIX.length];
+                if ([uniforms indexOfObject:key] == NSNotFound) {
+                    [uniforms addObject:key];
+                }
+            }
+    /* TODO: reflection of uniform variable is in need
+            NSString *type_attr = [NSSTR(property_getAttributes(property)) componentsSeparatedByString:@","][0];
+
+            if ([type_attr hasPrefix:@"T@"] && type_attr.length > 1) {
+                NSString *type_name = [type_attr substringWithRange:NSMakeRange(3, [type_attr length]-4)];
+                DUMPS(type_name);
+                Class type_class = NSClassFromString(type_name);
+            }
+    */
         }
-*/
+
+        free(vars);
+
+        current_class = [current_class superclass];
     }
 
     GLint attribute_idxs[[attributes count]];
