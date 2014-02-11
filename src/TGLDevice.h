@@ -142,7 +142,6 @@ convertHFloatToFloat(hfloat hf)
 +(void)runOnProcessQueueSync:(void (^)(EAGLContext *))block;
 +(CVOpenGLESTextureCacheRef)getFastTextureCacheRef;
 +(void)runOnMainQueueSync:(void (^)(EAGLContext *))block;
-+(void)runOnAllocQueueSync:(void (^)(EAGLContext *))block;
 +(void)fenceSync;
 
 @end
