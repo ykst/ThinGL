@@ -274,7 +274,7 @@ static BOOL __get_byte_format(GLenum *in_out_internal_format,
     NSASSERT(size.width > 0 && size.height > 0);
 
     __block TGLMappedTexture2D *obj;
-    [TGLDevice runOnProcessQueueSync:^(EAGLContext *_) {
+    [TGLDevice runPassiveContextSync:^{
         obj = [[TGLMappedTexture2D alloc] initFromImageBuffer:buffer withSize:size withPlaneIdx:plane_idx withInternalFormat:internal_format withSmooth:smooth withRepeat:NO];
     }];
     return obj;
@@ -290,7 +290,7 @@ static BOOL __get_byte_format(GLenum *in_out_internal_format,
     NSASSERT(size.width > 0 && size.height > 0);
 
     __block TGLMappedTexture2D *obj;
-    [TGLDevice runOnProcessQueueSync:^(EAGLContext *_) {
+    [TGLDevice runPassiveContextSync:^{
         obj = [[TGLMappedTexture2D alloc] initWithSize:size withInternalFormat:internal_format withSmooth:smooth withRepeat:repeat];
     }];
     return obj;
@@ -327,17 +327,14 @@ static BOOL __get_byte_format(GLenum *in_out_internal_format,
 
 - (void)dealloc
 {
-    [TGLDevice runOnProcessQueueSync:^(EAGLContext *_) {
-        //glFinish();
-        if (_texture_ref) {
-            CFRelease(_texture_ref);
-        }
+    if (_texture_ref) {
+        CFRelease(_texture_ref);
+    }
 
-        if (_pixel_buffer) {
-            CVPixelBufferUnlockBaseAddress(_pixel_buffer, 0);
-            CVPixelBufferRelease(_pixel_buffer);
-        }
-    }];
+    if (_pixel_buffer) {
+        CVPixelBufferUnlockBaseAddress(_pixel_buffer, 0);
+        CVPixelBufferRelease(_pixel_buffer);
+    }
 }
 
 - (void *)_lockWithFlag:(CVOptionFlags)flag
