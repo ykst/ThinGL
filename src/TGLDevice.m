@@ -39,24 +39,62 @@
     }
 }
 
-- (void)runSync:(void (^)(EAGLContext *))block
++ (EAGLContext *)createContext
 {
-    [self setContext];
+    TGLDevice *device = [TGLDevice sharedInstance];
+
+    return [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2 sharegroup:device.root_context.sharegroup];
+}
+
++ (void)setContext:(EAGLContext *)context
+{
+    if ([EAGLContext currentContext] != context) {
+        [EAGLContext setCurrentContext:context];
+    }
+}
+
++ (void)runPassiveContextSync:(void (^)())block
+{
+    NSASSERT([EAGLContext currentContext]);
     block([EAGLContext currentContext]);
     [TGLDevice fenceSync];
 }
 
-+ (void)runOnMainQueueSync:(void (^)(EAGLContext *))block
++ (void)runMainThreadSync:(void (^)())block
 {
     TGLDevice *device = [TGLDevice sharedInstance];
 
     if ([NSThread isMainThread]) {
-        [device runSync:block];
+        [device runMain:block];
     } else {
         dispatch_sync(dispatch_get_main_queue(), ^{
-            [device runSync:block];
+            [device runMain:block];
         });
     }
+}
+
++ (EAGLContext *)currentContext
+{
+    return [EAGLContext currentContext];
+}
+
++ (void)setNewContext
+{
+    [TGLDevice setContext:[TGLDevice createContext]];
+}
+
+- (void)runMain:(void (^)(EAGLContext *))block
+{
+    [self setContext];
+    TGLDevice *device = [TGLDevice sharedInstance];
+    EAGLContext *current_context = [EAGLContext currentContext] ;
+    if (current_context == device.root_context) {
+        [EAGLContext setCurrentContext:device.root_context];
+    }/* else {
+        NSASSERT(current_context == device.root_context);
+    }*/
+    block([EAGLContext currentContext]);
+    [TGLDevice fenceSync];
 }
 
 + (CVOpenGLESTextureCacheRef)getFastTextureCacheRef
@@ -65,19 +103,13 @@
     static dispatch_once_t __once_token;
 
     dispatch_once(&__once_token, ^{
-        [TGLDevice runOnMainQueueSync:^(EAGLContext *_) {
+        [TGLDevice runMainThreadSync:^{
             CVReturn err = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, NULL, [EAGLContext currentContext], NULL, &ref);
             NSASSERT(!err);
         }];
     });
 
     return ref;
-}
-
-+ (void)runOnProcessQueueSync:(void (^)(EAGLContext *))block
-{
-    TGLDevice *device = [TGLDevice sharedInstance];
-    [device runSync:block];
 }
 
 + (void)fenceSync

@@ -139,9 +139,15 @@ convertHFloatToFloat(hfloat hf)
 
 @interface TGLDevice : NSObject
 
-+(void)runOnProcessQueueSync:(void (^)(EAGLContext *))block;
++(void)runMainThreadSync:(void (^)())block;
++(void)runPassiveContextSync:(void (^)())block;
++(void)setContext:(EAGLContext *)context;
+
++(void)setNewContext;
++(EAGLContext *)createContext;
++(EAGLContext *)currentContext;
+
 +(CVOpenGLESTextureCacheRef)getFastTextureCacheRef;
-+(void)runOnMainQueueSync:(void (^)(EAGLContext *))block;
 +(void)fenceSync;
 
 @end
