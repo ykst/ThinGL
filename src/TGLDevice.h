@@ -143,7 +143,7 @@ convertHFloatToFloat(hfloat hf)
 +(void)runPassiveContextSync:(void (^)())block;
 +(void)setContext:(EAGLContext *)context;
 
-+(void)setNewContext;
++(EAGLContext *)setNewContext;
 +(EAGLContext *)createContext;
 +(EAGLContext *)currentContext;
 

@@ -78,9 +78,11 @@
     return [EAGLContext currentContext];
 }
 
-+ (void)setNewContext
++ (EAGLContext *)setNewContext
 {
-    [TGLDevice setContext:[TGLDevice createContext]];
+    EAGLContext *context = [TGLDevice createContext];
+    [TGLDevice setContext:context];
+    return context;
 }
 
 - (void)runMain:(void (^)(EAGLContext *))block
