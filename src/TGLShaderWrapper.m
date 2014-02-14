@@ -96,7 +96,7 @@ static NSDictionary *__set_variable_dic(NSArray *array, GLint *p_idxs)
 }
 @end
 
-@implementation GLPassthroughShaderWrapper
+@implementation MCVPassthroughShaderWrapper
 
 - (void)setupShaderWithFS:(NSString *)fs
 {
@@ -142,7 +142,7 @@ static NSDictionary *__set_variable_dic(NSArray *array, GLint *p_idxs)
 
 @end
 
-@implementation GL3x3ConvolutionShaderWrapper
+@implementation MCV3x3ConvolutionShaderWrapper
 
 - (void)setupShaderWithFS:(NSString *)fs
 {
