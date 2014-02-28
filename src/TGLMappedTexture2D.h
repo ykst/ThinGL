@@ -37,6 +37,7 @@
 - (void)attachColorFB;
 
 - (BOOL)save:(NSString *)name;
+- (UIImage *)toUIImage;
 + (TGLMappedTexture2D *)load:(NSString *)name;
 
 @end

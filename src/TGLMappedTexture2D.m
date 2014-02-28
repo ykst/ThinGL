@@ -448,5 +448,19 @@ static BOOL __get_byte_format(GLenum *in_out_internal_format,
 
     return result;
 }
+
+- (UIImage *)toUIImage
+{
+    CIImage *ciImage = [CIImage imageWithCVPixelBuffer:_pixel_buffer];
+
+    CIContext *temporaryContext = [CIContext contextWithOptions:nil];
+    CGImageRef img = [temporaryContext
+                             createCGImage:ciImage
+                             fromRect:CGRectMake(0, 0,
+                                                 CVPixelBufferGetWidth(_pixel_buffer),
+                                                 CVPixelBufferGetHeight(_pixel_buffer))];
+    
+    return [UIImage imageWithCGImage:img];
+}
 @end
 
