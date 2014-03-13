@@ -31,13 +31,13 @@
     }
     return self;
 }
-
+/*
 - (void)setContext
 {
     if ([EAGLContext currentContext] == nil) {
         [EAGLContext setCurrentContext:[[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2 sharegroup:self.root_context.sharegroup]];
     }
-}
+}*/
 
 + (EAGLContext *)createContext
 {
@@ -82,20 +82,20 @@
 {
     EAGLContext *context = [TGLDevice createContext];
     [TGLDevice setContext:context];
+    
     return context;
 }
 
 - (void)runMain:(void (^)(EAGLContext *))block
 {
-    [self setContext];
-    TGLDevice *device = [TGLDevice sharedInstance];
-    EAGLContext *current_context = [EAGLContext currentContext] ;
-    if (current_context == device.root_context) {
-        [EAGLContext setCurrentContext:device.root_context];
-    }/* else {
-        NSASSERT(current_context == device.root_context);
-    }*/
+    EAGLContext *current_context = [EAGLContext currentContext];
+
+    if (current_context != self.root_context) {
+        [EAGLContext setCurrentContext:self.root_context];
+    }
+
     block([EAGLContext currentContext]);
+
     [TGLDevice fenceSync];
 }
 
@@ -116,9 +116,20 @@
 
 + (void)fenceSync
 {
-    GLsync sync = glFenceSyncAPPLE(GL_SYNC_GPU_COMMANDS_COMPLETE_APPLE, 0);GLASSERT;
-    glClientWaitSyncAPPLE(sync, GL_SYNC_FLUSH_COMMANDS_BIT_APPLE, GL_TIMEOUT_IGNORED_APPLE);GLASSERT;
-    glDeleteSyncAPPLE(sync);GLASSERT;
+    TGLDevice *device = [TGLDevice sharedInstance];
+    GLsync sync;
+    @synchronized(device) {
+        sync = glFenceSyncAPPLE(GL_SYNC_GPU_COMMANDS_COMPLETE_APPLE, 0);GLASSERT;
+    }
+    GLenum result = glClientWaitSyncAPPLE(sync, GL_SYNC_FLUSH_COMMANDS_BIT_APPLE, GL_TIMEOUT_IGNORED_APPLE);GLASSERT;
+
+    @synchronized(device) {
+        if (glIsSyncAPPLE(sync)) {
+            glDeleteSyncAPPLE(sync);GLASSERT;
+        } else {
+            ERROR("glIsSyncAPPLE faild with wait-sync result: %08x", result);
+        }
+    }
 }
 
 @end
