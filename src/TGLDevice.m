@@ -5,10 +5,11 @@
 #import "TGLDevice.h"
 
 @interface TGLDevice() {
+    dispatch_queue_t _texture_cache_queue;
 }
 
 @property (nonatomic, readwrite) EAGLContext *root_context;
-
+@property (nonatomic, readwrite) EAGLContext *texture_cache_context;
 @end
 
 @implementation TGLDevice
@@ -28,16 +29,46 @@
     self = [super init];
     if (self) {
         self.root_context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2 sharegroup:nil];
+        self.texture_cache_context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2 sharegroup:self.root_context.sharegroup];
+        _texture_cache_queue = dispatch_queue_create("com.monadworks.tgl.texture_cache", 0);
+        dispatch_queue_set_specific(_texture_cache_queue, &_texture_cache_queue, (__bridge void *)self, NULL);
     }
     return self;
 }
-/*
-- (void)setContext
+
+- (void)runTextureCache:(void (^)())block
 {
-    if ([EAGLContext currentContext] == nil) {
-        [EAGLContext setCurrentContext:[[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2 sharegroup:self.root_context.sharegroup]];
+    EAGLContext *prev_context = [EAGLContext currentContext];
+
+    if (prev_context != _texture_cache_context) {
+        [EAGLContext setCurrentContext:_texture_cache_context];
     }
-}*/
+
+    block();
+
+    [TGLDevice fenceSync];
+
+    [TGLDevice setContext:prev_context];
+}
+
+- (void)runTextureCacheQueue:(void (^)())block
+{
+    TGLDevice *device = [TGLDevice sharedInstance];
+    if (dispatch_get_specific(&_texture_cache_queue) == (__bridge void *)self) {
+        [device runTextureCache:block];
+    } else {
+        dispatch_sync(_texture_cache_queue, ^{
+            [device runTextureCache:block];
+        });
+    }
+}
+
++ (void)runTextureCacheQueueSync:(void (^)())block
+{
+    TGLDevice *device = [TGLDevice sharedInstance];
+
+    [device runTextureCacheQueue:block];
+}
 
 + (EAGLContext *)createContext
 {
@@ -55,9 +86,15 @@
 
 + (void)runPassiveContextSync:(void (^)())block
 {
-    NSASSERT([EAGLContext currentContext]);
-    block([EAGLContext currentContext]);
+    EAGLContext *prev_context = [EAGLContext currentContext];
+
+    NSASSERT(prev_context);
+
+    block();
+
     [TGLDevice fenceSync];
+
+    [TGLDevice setContext:prev_context];
 }
 
 + (void)runMainThreadSync:(void (^)())block
@@ -86,36 +123,51 @@
     return context;
 }
 
-- (void)runMain:(void (^)(EAGLContext *))block
+- (void)runMain:(void (^)())block
 {
-    EAGLContext *current_context = [EAGLContext currentContext];
+    EAGLContext *prev_context = [EAGLContext currentContext];
 
-    if (current_context != self.root_context) {
+    if (prev_context != self.root_context) {
         [EAGLContext setCurrentContext:self.root_context];
     }
 
-    block([EAGLContext currentContext]);
+    block();
 
     [TGLDevice fenceSync];
+
+    [TGLDevice setContext:prev_context];
 }
 
-+ (CVOpenGLESTextureCacheRef)getFastTextureCacheRef
++ (void)useFastTextureCacheRef:(void (^)(CVOpenGLESTextureCacheRef))block
 {
-    static CVOpenGLESTextureCacheRef ref = NULL;
+    static CVOpenGLESTextureCacheRef __ref = NULL;
     static dispatch_once_t __once_token;
 
     dispatch_once(&__once_token, ^{
-        [TGLDevice runMainThreadSync:^{
-            CVReturn err = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, NULL, [EAGLContext currentContext], NULL, &ref);
+        TGLDevice *device = [TGLDevice sharedInstance];
+
+        [TGLDevice runTextureCacheQueueSync:^{
+            CVReturn err = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, NULL, device.texture_cache_context, NULL, &__ref);
             NSASSERT(!err);
         }];
     });
 
-    return ref;
+    [TGLDevice runTextureCacheQueueSync:^{
+        block(__ref);
+    }];
 }
+
++ (void)flushTextureCache
+{
+    [TGLDevice useFastTextureCacheRef:^(CVOpenGLESTextureCacheRef ref) {
+        CVOpenGLESTextureCacheFlush(ref, 0);
+    }];
+}
+
 
 + (void)fenceSync
 {
+    glFlush();
     TGLDevice *device = [TGLDevice sharedInstance];
     GLsync sync;
     @synchronized(device) {
