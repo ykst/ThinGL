@@ -415,6 +415,10 @@ static BOOL __get_byte_format(GLenum *in_out_internal_format,
 - (void)attachColorFB
 {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _name, 0);GLASSERT;
+
+    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+
+    NSASSERT(status == GL_FRAMEBUFFER_COMPLETE);
 }
 
 - (BOOL)save:(NSString *)name
