@@ -162,7 +162,7 @@ static BOOL __get_byte_format(GLenum *in_out_internal_format,
 }
 
 
-- (id)initWithSize:(CGSize)size withInternalFormat:(GLenum)internal_format withSmooth:(BOOL)smooth withRepeat:(BOOL)repeat
+- (id)initWithSize:(CGSize)size withInternalFormat:(GLenum)in_internal_format withSmooth:(BOOL)smooth withRepeat:(BOOL)repeat
 {
     self = [super init];
 
@@ -184,6 +184,7 @@ static BOOL __get_byte_format(GLenum *in_out_internal_format,
             OSType pixel_format = kCVPixelFormatType_32BGRA;
             GLenum input_gl_format = GL_RGBA;
             GLenum input_gl_type = GL_UNSIGNED_BYTE;
+            GLenum internal_format = in_internal_format;
 
             NSASSERT(__get_byte_format(&internal_format, &input_gl_format, &input_gl_type, &pixel_format));
 
