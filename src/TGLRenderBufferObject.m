@@ -52,7 +52,7 @@
 
     [obj bind];
     
-    NSASSERT([context renderbufferStorage:GL_RENDERBUFFER fromDrawable:layer]);GLASSERT;
+    [context renderbufferStorage:GL_RENDERBUFFER fromDrawable:layer];GLASSERT;
 
     GLint width = 0, height = 0, internal_format = 0;
 

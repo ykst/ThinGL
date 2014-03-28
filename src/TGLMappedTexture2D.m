@@ -186,7 +186,7 @@ static BOOL __get_byte_format(GLenum *in_out_internal_format,
             GLenum input_gl_type = GL_UNSIGNED_BYTE;
             GLenum internal_format = in_internal_format;
 
-            NSASSERT(__get_byte_format(&internal_format, &input_gl_format, &input_gl_type, &pixel_format));
+            __get_byte_format(&internal_format, &input_gl_format, &input_gl_type, &pixel_format);
 
             err = CVPixelBufferCreate(kCFAllocatorDefault, size.width, size.height, pixel_format, attrs, &_pixel_buffer);
 
@@ -341,7 +341,7 @@ static BOOL __get_byte_format(GLenum *in_out_internal_format,
 
 - (void *)_lockWithFlag:(CVOptionFlags)flag
 {
-    NSASSERT(CVPixelBufferLockBaseAddress(_pixel_buffer, flag) == kCVReturnSuccess);
+    CVPixelBufferLockBaseAddress(_pixel_buffer, flag);
 
     void *buf = NULL;
 
@@ -358,7 +358,7 @@ static BOOL __get_byte_format(GLenum *in_out_internal_format,
 
 - (void)_unlockWithFlag:(CVOptionFlags)flag
 {
-    NSASSERT(CVPixelBufferUnlockBaseAddress(_pixel_buffer, flag) == kCVReturnSuccess);
+    CVPixelBufferUnlockBaseAddress(_pixel_buffer, flag);
 }
 
 - (void)_useWithFlag:(CVOptionFlags)flag withBlock:(void (^)(void *))block
