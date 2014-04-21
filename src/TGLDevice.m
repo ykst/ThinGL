@@ -167,20 +167,14 @@
 
 + (void)fenceSync
 {
-    glFlush();
-    TGLDevice *device = [TGLDevice sharedInstance];
-    GLsync sync;
-    @synchronized(device) {
-        sync = glFenceSyncAPPLE(GL_SYNC_GPU_COMMANDS_COMPLETE_APPLE, 0);GLASSERT;
-    }
+    GLsync sync = glFenceSyncAPPLE(GL_SYNC_GPU_COMMANDS_COMPLETE_APPLE, 0);GLASSERT;
+
     GLenum result = glClientWaitSyncAPPLE(sync, GL_SYNC_FLUSH_COMMANDS_BIT_APPLE, GL_TIMEOUT_IGNORED_APPLE);GLASSERT;
 
-    @synchronized(device) {
-        if (glIsSyncAPPLE(sync)) {
-            glDeleteSyncAPPLE(sync);GLASSERT;
-        } else {
-            ERROR("glIsSyncAPPLE faild with wait-sync result: %08x", result);
-        }
+    if (glIsSyncAPPLE(sync)) {
+        glDeleteSyncAPPLE(sync);GLASSERT;
+    } else {
+        ERROR("glIsSyncAPPLE faild with wait-sync result: %08x", result);
     }
 }
 
