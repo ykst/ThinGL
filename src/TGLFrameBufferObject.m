@@ -97,9 +97,11 @@
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex.name, 0);
 
+#ifdef DEBUG
     GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 
     NSAssert(status == GL_FRAMEBUFFER_COMPLETE, @"Incomplete filter FBO: %d", status);
+#endif
 
     [[obj class] unbind];
 
@@ -120,9 +122,11 @@
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex.name, 0);
 
+#ifdef DEBUG
     GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 
     NSAssert(status == GL_FRAMEBUFFER_COMPLETE, @"Incomplete filter FBO: %d", status);
+#endif
 
     [[obj class] unbind];
 

@@ -147,7 +147,10 @@
         TGLDevice *device = [TGLDevice sharedInstance];
 
         [TGLDevice runTextureCacheQueueSync:^{
-            CVReturn err = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, NULL, device.texture_cache_context, NULL, &__ref);
+#ifdef DEBUG
+            CVReturn err =
+#endif
+                CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, NULL, device.texture_cache_context, NULL, &__ref);
             NSASSERT(!err);
         }];
     });

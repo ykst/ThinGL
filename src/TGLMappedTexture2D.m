@@ -29,11 +29,12 @@
     _name = CVOpenGLESTextureGetName(_texture_ref);
     _smooth = smooth;
 
+#ifdef DEBUG
     GLenum target = CVOpenGLESTextureGetTarget(_texture_ref);
 
     // if texture target was not 2D, users must be inconsistent.
     NSASSERT(target == GL_TEXTURE_2D);
-
+#endif
     glBindTexture(GL_TEXTURE_2D, _name);
 
     GLenum filter = smooth ? GL_LINEAR : GL_NEAREST;
@@ -109,9 +110,9 @@ static BOOL __get_byte_format(GLenum *in_out_internal_format,
 
 - (void)writeData:(NSData *)data
 {
-    [self useWritable:^(void *buf) {
+    TGL_USE_WRITABLE(self, buf) {
         memcpy(buf, data.bytes, MIN(_num_bytes, data.length));
-    }];
+    };
 }
 
 + (CGSize)getAlignedSizeFromImage:(UIImage *)image
@@ -314,14 +315,14 @@ static BOOL __get_byte_format(GLenum *in_out_internal_format,
 
 - (void)randomize
 {
-    [self useWritable:^(void *buf) {
+    TGL_USE_WRITABLE(self, buf) {
         uint32_t *buf32 = buf;
-        const int cnt = _num_bytes / 4;
+        const size_t cnt = _num_bytes >> 2;
         for (int i = 0; i < cnt; ++i) {
             *buf32 = arc4random();
             ++buf32;
         }
-    }];
+    };
 }
 
 - (void)dealloc
@@ -418,9 +419,11 @@ static BOOL __get_byte_format(GLenum *in_out_internal_format,
 {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _name, 0);GLASSERT;
 
+#ifdef DEBUG
     GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 
     NSASSERT(status == GL_FRAMEBUFFER_COMPLETE);
+#endif
 }
 
 - (BOOL)save:(NSString *)name
