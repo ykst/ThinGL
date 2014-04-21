@@ -40,5 +40,8 @@
 - (UIImage *)toUIImage;
 + (TGLMappedTexture2D *)load:(NSString *)name;
 
+
+#define TGL_USE_WRITABLE(obj, buf) for (void * buf = [(obj) lockWritable]; buf != NULL;) for (int __usewritable_dummy = 0; !__usewritable_dummy || ({ [(obj) unlockWritable]; buf = NULL; 0; }); __usewritable_dummy = 1)
+#define TGL_USE_READONLY(obj, buf) for (const void *buf = [(obj) lockReadonly]; buf != NULL;) for (int __usereadonly_dummy = 0; !__usereadonly_dummy || ({ [(obj) unlockReadonly]; buf = NULL; 0; }); __usereadonly_dummy = 1)
 @end
 
