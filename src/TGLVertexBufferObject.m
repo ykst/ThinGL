@@ -61,8 +61,8 @@ static inline GLsizei __get_gl_type_size(GLenum type) {
 
     glBufferData(GL_ARRAY_BUFFER, total_size, NULL, usage);GLASSERT;
 
-    GLsizei offset = 0;
-    int const command_count = [obj.commands count];
+    void *offset = 0;
+    int const command_count = (int)[obj.commands count];
     for (int i = 0; i < command_count; ++i) {
         struct gl_vbo_object_command *command = &commands[i];
 
@@ -79,7 +79,7 @@ static inline GLsizei __get_gl_type_size(GLenum type) {
                               GLBUFFER_OFFSET(offset));GLASSERT;
 
         if (command->ptr != NULL) {
-            glBufferSubData(GL_ARRAY_BUFFER, offset, [obj.sizes[i] unsignedIntValue], command->ptr);GLASSERT;
+            glBufferSubData(GL_ARRAY_BUFFER, (GLsizei)offset, [obj.sizes[i] unsignedIntValue], command->ptr);GLASSERT;
         }
 
         if (auto_offset) {

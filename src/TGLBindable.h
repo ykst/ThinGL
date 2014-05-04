@@ -10,5 +10,6 @@
 - (void)bindBlock:(void (^)())block;
 + (void)unbind;
 
+#define TGL_BINDBLOCK(obj) for (int __bindblock_dummy_idx = ({[(obj) bind]; 0;}); (__bindblock_dummy_idx < 1) || ({[[(obj) class] unbind]; 0;}); ++__bindblock_dummy_idx)
 @end
 

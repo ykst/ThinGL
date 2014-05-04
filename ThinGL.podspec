@@ -8,7 +8,7 @@
 
 Pod::Spec.new do |s|
   s.name         = "ThinGL"
-  s.version      = "0.1.0"
+  s.version      = "0.2.0"
   s.summary      = "Thin abstraction layer for iOS OpenGL-ES2"
 
   s.description  = <<-DESC
@@ -19,7 +19,7 @@ Pod::Spec.new do |s|
 
   s.author       = { "Yohsuke Yukishita" => "ykstyhsk@gmail.com" }
 
-  s.source       = { :git => "https://github.com/ykst/ThinGL.git", :tag => "0.1.0" }
+  s.source       = { :git => "https://github.com/ykst/ThinGL.git", :tag => "0.2.0" }
 
   s.source_files  = 'Sources', 'src/*.{h,c,m}'
   s.exclude_files = 'Makefile'

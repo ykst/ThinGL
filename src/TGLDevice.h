@@ -7,13 +7,10 @@
 #import "TGLProgram.h"
 
 #define GLBUFFER_OFFSET(x) ((const GLvoid *)(x))
-#if 1
+
 #define GLCHECK(action) do {action;NSASSERT(glGetError() == 0);} while(0)
-#else
-#define GLCHECK(action) action
-#endif
 
-
+#ifdef DEBUG
 #define GLASSERT do {\
 GLenum ____err = glGetError();\
 if (____err != GL_NO_ERROR) {\
@@ -21,6 +18,9 @@ NSLog(@"glGetError() = 0x%04x", ____err);\
 NSASSERT(!"GLASSERT");\
 }\
 } while(0)
+#else 
+#define GLASSERT
+#endif
 
 
 // http://my.safaribooksonline.com/book/programming/opengl/9780321563835/gl-half-float-oes/app01lev1sec2
@@ -141,13 +141,16 @@ convertHFloatToFloat(hfloat hf)
 
 +(void)runMainThreadSync:(void (^)())block;
 +(void)runPassiveContextSync:(void (^)())block;
++(void)runTextureCacheQueueSync:(void (^)())block;
 +(void)setContext:(EAGLContext *)context;
 
 +(EAGLContext *)setNewContext;
 +(EAGLContext *)createContext;
 +(EAGLContext *)currentContext;
 
-+(CVOpenGLESTextureCacheRef)getFastTextureCacheRef;
+//+(CVOpenGLESTextureCacheRef)getFastTextureCacheRef;
++ (void)flushTextureCache;
++ (void)useFastTextureCacheRef:(void (^)(CVOpenGLESTextureCacheRef ref))block;
 +(void)fenceSync;
 
 @end

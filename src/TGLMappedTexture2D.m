@@ -9,7 +9,6 @@
     @protected
     CVPixelBufferRef _pixel_buffer;
     CVOpenGLESTextureRef _texture_ref;
-    CVOpenGLESTextureCacheRef _texture_cache;
     BOOL _is_planar;
     NSUInteger _plane_index;
 }
@@ -30,11 +29,12 @@
     _name = CVOpenGLESTextureGetName(_texture_ref);
     _smooth = smooth;
 
+#ifdef DEBUG
     GLenum target = CVOpenGLESTextureGetTarget(_texture_ref);
 
     // if texture target was not 2D, users must be inconsistent.
     NSASSERT(target == GL_TEXTURE_2D);
-
+#endif
     glBindTexture(GL_TEXTURE_2D, _name);
 
     GLenum filter = smooth ? GL_LINEAR : GL_NEAREST;
@@ -110,9 +110,9 @@ static BOOL __get_byte_format(GLenum *in_out_internal_format,
 
 - (void)writeData:(NSData *)data
 {
-    [self useWritable:^(void *buf) {
+    TGL_USE_WRITABLE(self, buf) {
         memcpy(buf, data.bytes, MIN(_num_bytes, data.length));
-    }];
+    };
 }
 
 + (CGSize)getAlignedSizeFromImage:(UIImage *)image
@@ -163,65 +163,67 @@ static BOOL __get_byte_format(GLenum *in_out_internal_format,
 }
 
 
-- (id)initWithSize:(CGSize)size withInternalFormat:(GLenum)internal_format withSmooth:(BOOL)smooth withRepeat:(BOOL)repeat
+- (id)initWithSize:(CGSize)size withInternalFormat:(GLenum)in_internal_format withSmooth:(BOOL)smooth withRepeat:(BOOL)repeat
 {
     self = [super init];
 
     if (self) {
-        _texture_cache = [TGLDevice getFastTextureCacheRef];
+        [TGLDevice useFastTextureCacheRef:^(CVOpenGLESTextureCacheRef texture_cache) {
 
-        CVReturn err;
+            CVReturn err;
 
-        // Code originally sourced from http://allmybrain.com/2011/12/08/rendering-to-a-texture-with-ios-5-texture-cache-api/
-        CFDictionaryRef empty; // empty value for attr value.
-        CFMutableDictionaryRef attrs;
+            // Code originally sourced from http://allmybrain.com/2011/12/08/rendering-to-a-texture-with-ios-5-texture-cache-api/
+            CFDictionaryRef empty; // empty value for attr value.
+            CFMutableDictionaryRef attrs;
 
-        empty = CFDictionaryCreate(kCFAllocatorDefault, NULL, NULL, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks); // our empty IOSurface properties dictionary
+            empty = CFDictionaryCreate(kCFAllocatorDefault, NULL, NULL, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks); // our empty IOSurface properties dictionary
 
-        attrs = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+            attrs = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
 
-        CFDictionarySetValue(attrs, kCVPixelBufferIOSurfacePropertiesKey, empty);
+            CFDictionarySetValue(attrs, kCVPixelBufferIOSurfacePropertiesKey, empty);
 
-        OSType pixel_format = kCVPixelFormatType_32BGRA;
-        GLenum input_gl_format = GL_RGBA;
-        GLenum input_gl_type = GL_UNSIGNED_BYTE;
+            OSType pixel_format = kCVPixelFormatType_32BGRA;
+            GLenum input_gl_format = GL_RGBA;
+            GLenum input_gl_type = GL_UNSIGNED_BYTE;
+            GLenum internal_format = in_internal_format;
 
-        NSASSERT(__get_byte_format(&internal_format, &input_gl_format, &input_gl_type, &pixel_format));
+            __get_byte_format(&internal_format, &input_gl_format, &input_gl_type, &pixel_format);
 
-        err = CVPixelBufferCreate(kCFAllocatorDefault, size.width, size.height, pixel_format, attrs, &_pixel_buffer);
+            err = CVPixelBufferCreate(kCFAllocatorDefault, size.width, size.height, pixel_format, attrs, &_pixel_buffer);
 
-        NSASSERT(!err);
+            NSASSERT(!err);
 
-        _num_bytes = CVPixelBufferGetDataSize(_pixel_buffer);
+            _num_bytes = CVPixelBufferGetDataSize(_pixel_buffer);
 
-        NSASSERT(_num_bytes > 0);
+            NSASSERT(_num_bytes > 0);
 
-        err = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault,
-                                                           _texture_cache,
-                                                           _pixel_buffer,
-                                                           NULL,
-                                                           GL_TEXTURE_2D,
-                                                           internal_format,
-                                                           size.width,
-                                                           size.height,
-                                                           input_gl_format,
-                                                           input_gl_type,
-                                                           0,
-                                                           &_texture_ref);
+            err = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault,
+                                                               texture_cache,
+                                                               _pixel_buffer,
+                                                               NULL,
+                                                               GL_TEXTURE_2D,
+                                                               internal_format,
+                                                               size.width,
+                                                               size.height,
+                                                               input_gl_format,
+                                                               input_gl_type,
+                                                               0,
+                                                               &_texture_ref);
 
-        NSASSERT(!err);
+            NSASSERT(!err);
 
-        CFRelease(attrs);
-        CFRelease(empty);
+            CFRelease(attrs);
+            CFRelease(empty);
 
-        [self _setupTexturePostProcess:smooth withRepeat:repeat];
-
-        _size = size;
-        _repeat = repeat;
-        _bytes_per_row = CVPixelBufferGetBytesPerRow(_pixel_buffer);
-        _internal_format = internal_format;
-        _is_planar = CVPixelBufferIsPlanar(_pixel_buffer);
-        _plane_index = 0;
+            [self _setupTexturePostProcess:smooth withRepeat:repeat];
+            
+            _size = size;
+            _repeat = repeat;
+            _bytes_per_row = CVPixelBufferGetBytesPerRow(_pixel_buffer);
+            _internal_format = internal_format;
+            _is_planar = CVPixelBufferIsPlanar(_pixel_buffer);
+            _plane_index = 0;
+        }];
     }
     
     return self;
@@ -232,38 +234,36 @@ static BOOL __get_byte_format(GLenum *in_out_internal_format,
     self = [super init];
 
     if (self) {
+        [TGLDevice useFastTextureCacheRef:^(CVOpenGLESTextureCacheRef texture_cache) {
+            _pixel_buffer = buffer;
+            _num_bytes = CVPixelBufferGetDataSize(_pixel_buffer);
 
-        if (!_texture_cache) {
-            _texture_cache = [TGLDevice getFastTextureCacheRef];
-        }
-        _pixel_buffer = buffer;
-        _num_bytes = CVPixelBufferGetDataSize(_pixel_buffer);
+            CFRetain(buffer);
 
-        CFRetain(buffer);
+            CVReturn err;
 
-        CVReturn err;
+            GLenum format = GL_LUMINANCE;
 
-        GLenum format = GL_LUMINANCE;
+            switch(internal_format) {
+                case GL_LUMINANCE: format = GL_LUMINANCE; break;
+                case GL_LUMINANCE_ALPHA: format = GL_LUMINANCE_ALPHA; break;
+                case GL_RGBA: format = GL_BGRA; break;
+                default: NSASSERT(!"Unexpected buffer type"); break;
+            }
 
-        switch(internal_format) {
-            case GL_LUMINANCE: format = GL_LUMINANCE; break;
-            case GL_LUMINANCE_ALPHA: format = GL_LUMINANCE_ALPHA; break;
-            case GL_RGBA: format = GL_BGRA; break;
-            default: NSASSERT(!"Unexpected buffer type"); break;
-        }
+            err = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault, texture_cache, buffer, NULL, GL_TEXTURE_2D, internal_format, size.width, size.height, format, GL_UNSIGNED_BYTE, plane_idx, &_texture_ref);
 
-        err = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault, _texture_cache, buffer, NULL, GL_TEXTURE_2D, internal_format, size.width, size.height, format, GL_UNSIGNED_BYTE, plane_idx, &_texture_ref);
+            NSASSERT(!err);
 
-        NSASSERT(!err);
+            [self _setupTexturePostProcess:smooth withRepeat:repeat];
 
-        [self _setupTexturePostProcess:smooth withRepeat:repeat];
-
-        _size = size;
-        _repeat = repeat;
-        _bytes_per_row = CVPixelBufferGetBytesPerRow(_pixel_buffer);
-        _internal_format = internal_format;
-        _is_planar = CVPixelBufferIsPlanar(_pixel_buffer);
-        _plane_index = plane_idx;
+            _size = size;
+            _repeat = repeat;
+            _bytes_per_row = CVPixelBufferGetBytesPerRow(_pixel_buffer);
+            _internal_format = internal_format;
+            _is_planar = CVPixelBufferIsPlanar(_pixel_buffer);
+            _plane_index = plane_idx;
+        }];
     }
 
     return self;
@@ -274,7 +274,7 @@ static BOOL __get_byte_format(GLenum *in_out_internal_format,
     NSASSERT(size.width > 0 && size.height > 0);
 
     __block TGLMappedTexture2D *obj;
-    [TGLDevice runPassiveContextSync:^{
+    [TGLDevice runTextureCacheQueueSync:^{
         obj = [[TGLMappedTexture2D alloc] initFromImageBuffer:buffer withSize:size withPlaneIdx:plane_idx withInternalFormat:internal_format withSmooth:smooth withRepeat:NO];
     }];
     return obj;
@@ -290,7 +290,7 @@ static BOOL __get_byte_format(GLenum *in_out_internal_format,
     NSASSERT(size.width > 0 && size.height > 0);
 
     __block TGLMappedTexture2D *obj;
-    [TGLDevice runPassiveContextSync:^{
+    [TGLDevice runTextureCacheQueueSync:^{
         obj = [[TGLMappedTexture2D alloc] initWithSize:size withInternalFormat:internal_format withSmooth:smooth withRepeat:repeat];
     }];
     return obj;
@@ -315,20 +315,23 @@ static BOOL __get_byte_format(GLenum *in_out_internal_format,
 
 - (void)randomize
 {
-    [self useWritable:^(void *buf) {
+    TGL_USE_WRITABLE(self, buf) {
         uint32_t *buf32 = buf;
-        const int cnt = _num_bytes / 4;
+        const size_t cnt = _num_bytes >> 2;
         for (int i = 0; i < cnt; ++i) {
             *buf32 = arc4random();
             ++buf32;
         }
-    }];
+    };
 }
 
 - (void)dealloc
 {
     if (_texture_ref) {
-        CFRelease(_texture_ref);
+        [TGLDevice runTextureCacheQueueSync:^{
+            [TGLDevice flushTextureCache];
+            CFRelease(_texture_ref);
+        }];
     }
 
     if (_pixel_buffer) {
@@ -339,7 +342,7 @@ static BOOL __get_byte_format(GLenum *in_out_internal_format,
 
 - (void *)_lockWithFlag:(CVOptionFlags)flag
 {
-    NSASSERT(CVPixelBufferLockBaseAddress(_pixel_buffer, flag) == kCVReturnSuccess);
+    CVPixelBufferLockBaseAddress(_pixel_buffer, flag);
 
     void *buf = NULL;
 
@@ -356,7 +359,7 @@ static BOOL __get_byte_format(GLenum *in_out_internal_format,
 
 - (void)_unlockWithFlag:(CVOptionFlags)flag
 {
-    NSASSERT(CVPixelBufferUnlockBaseAddress(_pixel_buffer, flag) == kCVReturnSuccess);
+    CVPixelBufferUnlockBaseAddress(_pixel_buffer, flag);
 }
 
 - (void)_useWithFlag:(CVOptionFlags)flag withBlock:(void (^)(void *))block
@@ -416,9 +419,11 @@ static BOOL __get_byte_format(GLenum *in_out_internal_format,
 {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _name, 0);GLASSERT;
 
+#ifdef DEBUG
     GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 
     NSASSERT(status == GL_FRAMEBUFFER_COMPLETE);
+#endif
 }
 
 - (BOOL)save:(NSString *)name
