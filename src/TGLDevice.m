@@ -198,7 +198,7 @@
         if (glIsSyncAPPLE(sync)) {
             glDeleteSyncAPPLE(sync);GLASSERT;
         } else {
-            ERROR("glIsSyncAPPLE faild with wait-sync result: %08x", result);
+            ERROR("glIsSyncAPPLE may be failed with wait-sync result: %08x", result);
         }
     }
 }
