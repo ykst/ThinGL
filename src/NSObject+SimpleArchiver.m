@@ -26,13 +26,18 @@
     unsigned count;
     objc_property_t *properties = class_copyPropertyList([self class], &count);
 
-    if (count == 0) return NO;
+    if (count == 0) {
+        if (properties != NULL) { free(properties); };
+        return NO;
+    }
 
     NSMutableArray *keys = [NSMutableArray arrayWithCapacity:count];
     for (int i = 0; i < count; ++i) {
         objc_property_t property = properties[i];
         keys[i] = [NSString stringWithUTF8String:property_getName(property)];
     }
+
+    if (properties != NULL) { free(properties); };
 
     NSDictionary *dict = [self dictionaryWithValuesForKeys:keys];
 
