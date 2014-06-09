@@ -27,17 +27,4 @@
 - (void)setupShaderWithVS:(NSString *)vs withFS:(NSString *)fs;
 @end
 
-@interface MCVPassthroughShaderWrapper : TGLShaderWrapper
-@property (nonatomic, readwrite) GLint attribute_position;
-@property (nonatomic, readwrite) GLint attribute_inputTextureCoordinate;
-
-- (void)setupShaderWithFS:(NSString *)fs;
-@end
-
-@interface MCV3x3ConvolutionShaderWrapper : TGLShaderWrapper
-@property (nonatomic, readwrite) GLint attribute_position;
-@property (nonatomic, readwrite) GLint attribute_inputTextureCoordinate;
-
-- (void)setupShaderWithFS:(NSString *)fs;
-@end
 
