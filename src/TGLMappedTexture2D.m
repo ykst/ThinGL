@@ -1,7 +1,6 @@
 // Copyright (c) 2014 Yohsuke Yukishita
 // This software is released under the MIT License: http://opensource.org/licenses/mit-license.php
 
-#import "NSObject+SimpleArchiver.h"
 #import "TGLMappedTexture2D.h"
 #import "TGLDevice.h"
 
@@ -23,7 +22,7 @@
 
 @implementation TGLMappedTexture2D
 
-// 単に共通処理を抜いただけなので副作用がマッハ
+// 単に共通処理を抜いただけなので副作用がやばい
 - (void)_setupTexturePostProcess:(BOOL)smooth withRepeat:(BOOL)repeat
 {
     _name = CVOpenGLESTextureGetName(_texture_ref);
@@ -424,38 +423,6 @@ static BOOL __get_byte_format(GLenum *in_out_internal_format,
 
     NSASSERT(status == GL_FRAMEBUFFER_COMPLETE);
 #endif
-}
-
-- (BOOL)save:(NSString *)name
-{
-    _buffer_to_save = [NSData dataWithBytes:[self lockReadonly] length:_num_bytes];
-
-    [self unlockReadonly];
-
-    BOOL ret =  [self simpleArchiveForKey:name];
-
-    NSASSERT(ret);
-
-    _buffer_to_save = nil;
-
-    return ret;
-}
-
-+ (TGLMappedTexture2D *)load:(NSString *)name
-{
-    TGLMappedTexture2D *result = nil;
-
-    @autoreleasepool {
-        TGLMappedTexture2D *dummy_obj = [TGLMappedTexture2D simpleUnarchiveForKey:name];
-
-        NSASSERT(dummy_obj);
-        
-        result = [TGLMappedTexture2D createWithSize:dummy_obj.size withInternalFormat:dummy_obj.internal_format withSmooth:dummy_obj.smooth];
-
-        [result writeData:dummy_obj.buffer_to_save];
-    }
-
-    return result;
 }
 
 - (UIImage *)toUIImage
