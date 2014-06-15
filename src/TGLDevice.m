@@ -6,6 +6,7 @@
 
 @interface TGLDevice() {
     dispatch_queue_t _texture_cache_queue;
+    pthread_mutex_t _mutex;
 }
 
 @property (nonatomic, readwrite) EAGLContext *root_context;
@@ -31,6 +32,7 @@
         self.root_context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2 sharegroup:nil];
         self.texture_cache_context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2 sharegroup:self.root_context.sharegroup];
         _texture_cache_queue = dispatch_queue_create("com.monadworks.tgl.texture_cache", 0);
+        pthread_mutex_init(&_mutex, NULL);
         dispatch_queue_set_specific(_texture_cache_queue, &_texture_cache_queue, (__bridge void *)self, NULL);
     }
     return self;
@@ -167,40 +169,41 @@
     }];
 }
 
-/*
-+ (void)fenceSync
+- (void)lock
 {
-    GLsync sync = glFenceSyncAPPLE(GL_SYNC_GPU_COMMANDS_COMPLETE_APPLE, 0);GLASSERT;
-
-    if (!glIsSyncAPPLE(sync)) {
-        glFinish();
-        ERROR("glFenceSyncAPPLE returned invalid object");
-        return;
-    }
-
-    glFlush();
-    GLenum result = glClientWaitSyncAPPLE(sync, GL_SYNC_FLUSH_COMMANDS_BIT_APPLE, GL_TIMEOUT_IGNORED_APPLE);GLASSERT;
-
-    glDeleteSyncAPPLE(sync);GLASSERT;
+    pthread_mutex_lock(&_mutex);
 }
-*/
+
+- (void)unlock
+{
+    pthread_mutex_unlock(&_mutex);
+}
 
 + (void)fenceSync
 {
     TGLDevice *device = [TGLDevice sharedInstance];
-    GLsync sync;
-    @synchronized(device) {
-        sync = glFenceSyncAPPLE(GL_SYNC_GPU_COMMANDS_COMPLETE_APPLE, 0);GLASSERT;
-    }
+
+    // NOTE:
+    // This lock is conceptually unnecessary but there are witnesses without doing this may cause fatal crash on multi-threaded multi-context, only in iOS6.
+    [device lock];
+    GLsync sync = glFenceSyncAPPLE(GL_SYNC_GPU_COMMANDS_COMPLETE_APPLE, 0);GLASSERT;
+    [device unlock];
+
     GLenum result = glClientWaitSyncAPPLE(sync, GL_SYNC_FLUSH_COMMANDS_BIT_APPLE, GL_TIMEOUT_IGNORED_APPLE);GLASSERT;
 
-    @synchronized(device) {
-        if (glIsSyncAPPLE(sync)) {
-            glDeleteSyncAPPLE(sync);GLASSERT;
-        } else {
-            ERROR("glIsSyncAPPLE may be failed with wait-sync result: %08x", result);
-        }
+    // NOTE: Same as the above comment
+    [device lock];
+    if (glIsSyncAPPLE(sync)) {
+        glDeleteSyncAPPLE(sync);GLASSERT;
+    } else {
+        ERROR("glIsSyncAPPLE may be failed with wait-sync result: %08x", result);
     }
+    [device unlock];
+}
+
+- (void)dealloc
+{
+    pthread_mutex_destroy(&_mutex);
 }
 
 @end
