@@ -184,14 +184,36 @@
     TGLDevice *device = [TGLDevice sharedInstance];
 
     // NOTE:
-    // This lock is conceptually unnecessary but there are witnesses without doing this may cause fatal crash on multi-threaded multi-context, only in iOS6.
+    // This lock is conceptually unnecessary but there are witnesses without doing this
+    // may cause fatal crash on multi-threaded multi-context, only in iOS6.
     [device lock];
     GLsync sync = glFenceSyncAPPLE(GL_SYNC_GPU_COMMANDS_COMPLETE_APPLE, 0);GLASSERT;
     [device unlock];
 
-    GLenum result = glClientWaitSyncAPPLE(sync, GL_SYNC_FLUSH_COMMANDS_BIT_APPLE, GL_TIMEOUT_IGNORED_APPLE);GLASSERT;
+    int yield_count = 0;
+    GLenum result;
 
-    // NOTE: Same as the above comment
+    do {
+        // NOTE:
+        // glClientWaitSyncAPPLE sometimes spends up lots of CPU by calling mach_absolute_time()
+        // while detecting timeout in its busy loop.
+        // So we do not count on its blocking mechanism considering CPU effeciency in multi threads.
+        result = glClientWaitSyncAPPLE(sync, GL_SYNC_FLUSH_COMMANDS_BIT_APPLE, 0);GLASSERT;
+
+        if (result == GL_TIMEOUT_EXPIRED_APPLE) {
+            if (yield_count < 1) {
+                ++yield_count;
+                sched_yield();
+            } else {
+                // call glFinish() to avoid bursting sched_yield()
+                glFinish();
+                break;
+            }
+        } else {
+            break;
+        }
+    } while (1);
+
     [device lock];
     if (glIsSyncAPPLE(sync)) {
         glDeleteSyncAPPLE(sync);GLASSERT;
