@@ -96,7 +96,9 @@ static inline GLsizei __get_gl_type_size(GLenum type) {
 
 - (void)subDataOfAttribute:(GLint)attribute withPointer:(void const * const)ptr withElems:(GLuint)elems
 {
+#ifdef DEBUG
     BOOL found = NO;
+#endif
     struct gl_vbo_object_command command = {};
 
     int idx = 0;
@@ -104,7 +106,9 @@ static inline GLsizei __get_gl_type_size(GLenum type) {
     for (NSValue *v in _commands) {
         [v getValue:&command];
         if (command.attribute == attribute) {
+#ifdef DEBUG
             found = YES;
+#endif
             break;
         }
         if (_auto_offset) {
